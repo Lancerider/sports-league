@@ -6,7 +6,8 @@
     "serve": "vue-cli-service serve --port 3000",
     "build": "vue-cli-service build",
     "lint": "vue-cli-service lint",
-    "start": "npm run serve"
+    "start": "npm run serve",
+    "server": "json-fake-server -m dev-mock-server-config.json"
   },
   "dependencies": {
     "core-js": "^3.6.5",
