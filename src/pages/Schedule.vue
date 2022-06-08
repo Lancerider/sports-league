@@ -1,5 +1,5 @@
 <template>
-  <div class="">
+  <div class="page-container">
     Schedule
   </div>
 </template>
@@ -8,9 +8,6 @@
 export default {
   name: 'Schedule',
   inject: ['leagueService'],
-  async mounted() {
-    this.leagueService.getLeaderboard();
-  },
 }
 </script>
 
