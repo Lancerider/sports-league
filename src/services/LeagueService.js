@@ -63,12 +63,47 @@ class LeagueService {
    * @returns {Array} List of teams representing the leaderboard.
    */
   getLeaderboard() {
+    const basicLeaderboard = this.getBasicLeaderboard(this.matches);
+
+    const areTeamsTied = this.checkTeamsPoints(basicLeaderboard);
+
+    if (!areTeamsTied) {
+      return basicLeaderboard;
+    }
+
+    const leaderboard = this.leadershipPositions(basicLeaderboard);
+
+    return leaderboard;
+  }
+
+  /**
+   * Returns the leaderboard in a form of a list of JSON objects without Tie Breaking.
+   *
+   * [
+   *      {
+   *          teamName: [STRING]',
+   *          matchesPlayed: [INTEGER],
+   *          goalsFor: [INTEGER],
+   *          goalsAgainst: [INTEGER],
+   *          points: [INTEGER]
+   *      },
+   * ]
+   *
+   * @param {Array} matches List of matches.
+   * @returns {Array} List of teams arranged by points.
+   */
+  getBasicLeaderboard(matches = this.matches) {
     const teamsData = {};
 
-    this.matches.forEach(match => {
+    matches.forEach(match => {
       const isHomeTeamAdded = teamsData[match.homeTeam];
       const isAwayTeamAdded = teamsData[match.awayTeam];
-      const { homeTeamScore, awayTeamScore } = match;
+      const {
+        homeTeam,
+        awayTeam,
+        homeTeamScore,
+        awayTeamScore
+      } = match;
 
       const baseTeamData = {
         matchesPlayed: 0,
@@ -91,29 +126,28 @@ class LeagueService {
         };
       }
 
-      teamsData[match.homeTeam].matchesPlayed += 1;
-      teamsData[match.awayTeam].matchesPlayed += 1;
-      teamsData[match.homeTeam].goalsFor += homeTeamScore;
-      teamsData[match.awayTeam].goalsFor += awayTeamScore;
-      teamsData[match.homeTeam].goalsAgainst += awayTeamScore;
-      teamsData[match.awayTeam].goalsAgainst += homeTeamScore;
-      teamsData[match.homeTeam].points += this.calculateMatchPoints(homeTeamScore, awayTeamScore);
-      teamsData[match.awayTeam].points += this.calculateMatchPoints(awayTeamScore, homeTeamScore);
+      teamsData[homeTeam].matchesPlayed += match.matchPlayed ? 1 : 0;
+      teamsData[homeTeam].goalsFor += match.matchPlayed ? homeTeamScore : 0;
+      teamsData[homeTeam].goalsAgainst += match.matchPlayed ? awayTeamScore : 0;
+      teamsData[homeTeam].points += match.matchPlayed ? this.calculateMatchPoints(homeTeamScore, awayTeamScore) : 0;
+
+      teamsData[awayTeam].matchesPlayed += match.matchPlayed ? 1 : 0;
+      teamsData[awayTeam].goalsFor += match.matchPlayed ? awayTeamScore : 0;
+      teamsData[awayTeam].goalsAgainst += match.matchPlayed ? homeTeamScore : 0;
+      teamsData[awayTeam].points += match.matchPlayed ? this.calculateMatchPoints(awayTeamScore, homeTeamScore) : 0;
     })
 
-    const leaderboard = Object.values(teamsData).sort((a, b) => {
-      return b.points - a.points;
-    });
+    const basicLeaderboard = Object.values(teamsData)
+      .sort((a, b) => b.points - a.points);
 
-    console.log(leaderboard);
-
-    return leaderboard;
+    return basicLeaderboard;
   }
 
   /**
    * Calculates the points for a team based on the match results:
    * @param {INTEGER} currentTeamPoints
    * @param {INTEGER} opposingTeamPoints
+   * @returns {INTEGER} Points earned.
    */
   calculateMatchPoints(currentTeamPoints, opposingTeamPoints) {
     if (currentTeamPoints > opposingTeamPoints) {
@@ -125,6 +159,88 @@ class LeagueService {
     }
 
     return 0
+  }
+
+  /**
+   * Checks if there if there are teams tied:
+   * @param {Array} leadershipList List of teams with points earned
+   * @returns {INTEGER} Points earned.
+   */
+  checkTeamsPoints(leadershipList) {
+    const points = Array.from(new Set(leadershipList.map(team => team.points)));
+
+    const thereAreTeamsWithTied = points.length !== leadershipList.length;
+
+    return thereAreTeamsWithTied;
+  }
+
+  /**
+   * Defines the order of winners, taking in count the Tiebreakes:
+   * @param {Array} teamsData List of teams with their leaderboard points
+   */
+  leadershipPositions(teamsData) {
+    const points = Array.from(new Set(teamsData.map(team => team.points))); // [3, 3, 2, 1]
+
+    const leaderboard = points.reduce((newLeaderboard, point) => {
+      const teamFilteredByPoints = teamsData.filter(team => team.points === point)
+
+      if (teamFilteredByPoints.length === 1) {
+        return [...newLeaderboard, teamFilteredByPoints[0]]
+      }
+
+      // FIRST TIE BREAKER
+      const sameScoreTeamsNames = teamFilteredByPoints.map(team => team.teamName)
+
+      const matchesFiltered = this.matches.filter(match => {
+          return sameScoreTeamsNames.includes(match.awayTeam)
+            & sameScoreTeamsNames.includes(match.homeTeam)
+        });
+
+      const subLeaderboard = this.getBasicLeaderboard(matchesFiltered);
+
+      const teamsTied = this.checkTeamsPoints(subLeaderboard);
+
+      const realSubTeamData = subLeaderboard.map(subteam => {
+        return teamsData.find(team => team.teamName === subteam.teamName)
+      })
+
+      if (!teamsTied) {
+        return [...newLeaderboard, ...realSubTeamData]
+      }
+
+      const subLeaderboardFiltered = subLeaderboard.sort((teamA, teamB) => {
+        if (teamA.points !== teamB.points) {
+          return teamB.points - teamA.points;
+        }
+
+        const realTeamA = realSubTeamData.find(team => team.teamName === teamA.teamName)
+        const realTeamB = realSubTeamData.find(team => team.teamName === teamB.teamName)
+
+        // SECOND TIE BREAKER - Goal Difference
+        const goalsDifferenceA = realTeamA.goalsFor - realTeamA.goalsAgainst;
+        const goalsDifferenceB = realTeamB.goalsFor - realTeamB.goalsAgainst;
+
+        if (goalsDifferenceA !== goalsDifferenceB) {
+          return goalsDifferenceB - goalsDifferenceA;
+        }
+
+        // THIRD TIE BREAKER - Scored Goals
+        if (realTeamA.goalsFor !== realTeamB.goalsFor) {
+          return realTeamB.goalsFor - realTeamA.goalsFor;
+        }
+
+        // FOURTH TIE BREAKER - Alphabetical Order
+        return teamA.teamName.localeCompare(realTeamB.teamName)
+      })
+
+      const subLeaderboardFilteredRealData = subLeaderboardFiltered.map(subteam => {
+        return teamsData.find(team => team.teamName === subteam.teamName)
+      })
+
+      return [...newLeaderboard, ...subLeaderboardFilteredRealData]
+    }, [])
+
+    return leaderboard
   }
 
   /**
