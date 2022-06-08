@@ -38,7 +38,7 @@
 </template>
 
 <script>
-import Flag from '@/components/Flag'
+import Flag from '@/components/Flag';
 
 export default {
   name: 'Leaderboard',
@@ -46,12 +46,12 @@ export default {
   inject: {
     leagueService: {
       from: 'leagueService',
-      default: () => [],
+      default: () => {},
     }
   },
   data() {
     return {
-      leaderboard: this.leagueService.getLeaderboard(),
+      leaderboard: this.leagueService().getLeaderboard(),
     };
   },
 }

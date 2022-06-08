@@ -19,17 +19,11 @@
       NavBar,
       Footer,
     },
-    data() {
-      return {
-        leagueService: new LeagueService(),
-      }
-    },
-    async mounted() {
-      await this.leagueService.fetchData()
-    },
     provide() {
+      const leagueService = new LeagueService();
+
       return {
-        leagueService: this.leagueService,
+        leagueService: () => leagueService,
       }
     },
   }

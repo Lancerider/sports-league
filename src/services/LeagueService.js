@@ -8,6 +8,10 @@
 class LeagueService {
   matches = [];
 
+  constructor() {
+    this.fetchData();
+  }
+
   /**
    * Sets the match schedule.
    * Match schedule will be given in the following form:
@@ -35,7 +39,10 @@ class LeagueService {
    * @param {Array} matches List of matches.
    */
   setMatches(matches) {
-    this.matches = matches;
+    const setMatch = match => this.matches.push(match);
+
+    // For vue reactivity
+    matches.forEach(setMatch.bind(this))
   }
 
   /**
