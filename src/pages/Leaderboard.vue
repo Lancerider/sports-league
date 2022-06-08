@@ -49,10 +49,10 @@ export default {
       default: () => {},
     }
   },
-  data() {
-    return {
-      leaderboard: this.leagueService().getLeaderboard(),
-    };
+  computed: {
+    leaderboard() {
+      return this.leagueService() ? this.leagueService().getLeaderboard() : [];
+    },
   },
 }
 </script>

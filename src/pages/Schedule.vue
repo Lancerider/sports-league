@@ -61,13 +61,10 @@ export default {
       default: () => {},
     }
   },
-  mounted() {
-    console.log(format(1651744228685, 'yyyy-MM-dd'))
-  },
-  data() {
-    return {
-      schedule: this.leagueService().getMatches(),
-    };
+  computed: {
+    schedule() {
+      return this.leagueService() ? this.leagueService().getMatches() : [];
+    },
   },
   methods: {
     getDate(unixDate) {

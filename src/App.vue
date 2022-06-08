@@ -19,11 +19,21 @@
       NavBar,
       Footer,
     },
-    provide() {
+    data() {
+      return {
+        leagueService: null,
+      }
+    },
+    async created() {
       const leagueService = new LeagueService();
 
+      await leagueService.fetchData();
+
+      this.leagueService = leagueService;
+    },
+    provide() {
       return {
-        leagueService: () => leagueService,
+        leagueService: () => this.leagueService,
       }
     },
   }

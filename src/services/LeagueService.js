@@ -8,10 +8,6 @@
 class LeagueService {
   matches = [];
 
-  constructor() {
-    this.fetchData();
-  }
-
   /**
    * Sets the match schedule.
    * Match schedule will be given in the following form:
